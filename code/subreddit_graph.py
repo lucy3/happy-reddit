@@ -29,7 +29,7 @@ def generate_user_sets():
 
 def user_graph():
     """
-    Subreddits by subscriber
+    Subreddits by user
     data
     """
     with open(SUBREDDIT_USERS, 'r') as inp: 
@@ -42,18 +42,27 @@ def user_graph():
     for sub in data:
         if sub in subreddits:
             d[sub] = set(data[sub])
+    # assign node IDs to subs
+    sorted_subs = sorted(subreddits)
+    sub_id = {} 
+    for i, sub in enumerate(sorted_subs):
+        sub_id[sub] = i
+    # write node file
     nodes_out = open(NODES, 'w')
-    nodes_out.write('Label\tWeight\n')
-    for sub in d: 
-        nodes_out.write(sub + '\t' + str(len(d[sub])) + '\n')
+    nodes_out.write('Id\tLabel\tWeight\n')
+    for sub in d:
+        nodes_out.write(str(i) + '\t' + sub + '\t' \
+                        + str(len(d[sub])) + '\n')
     nodes_out.close()  
+    # write edges file
     pairs = itertools.combinations(d.keys(), 2)
     edges_out = open(EDGES, 'w')
     edges_out.write('Source\tTarget\tWeight\n')
     for p in pairs: 
         weight = len(d[p[0]] & d[p[1]])
-        edges_out.write(p[0] + '\t' + p[1] + '\t' \
-                        + str(weight) + '\n')
+        edges_out.write(str(sub_id[p[0]]) + '\t' + \
+                        str(sub_id[p[1]]) + '\t' + \
+                        str(weight) + '\n')
     edges_out.close()
 
 def topic_graph(): 
