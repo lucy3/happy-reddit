@@ -8,6 +8,7 @@ import itertools
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 SUBREDDIT_USERS = "../data/subreddit_users.json"
 EDGES = "../logs/user_edges.tsv"
+NODES = "../logs/user_nodes.tsv"
 TOP_100 = "../logs/top_100subreddits.txt"
 
 def generate_user_sets(): 
@@ -41,8 +42,14 @@ def user_graph():
     for sub in data:
         if sub in subreddits:
             d[sub] = set(data[sub])
+    nodes_out = open(NODES, 'w')
+    nodes_out.write('Label\tWeight\n')
+    for sub in d: 
+        nodes_out.write(sub + '\t' + str(len(d[sub])) + '\n')
+    nodes_out.close()  
     pairs = itertools.combinations(d.keys(), 2)
     edges_out = open(EDGES, 'w')
+    edges_out.write('Source\tTarget\tWeight\n')
     for p in pairs: 
         weight = len(d[p[0]] & d[p[1]])
         edges_out.write(p[0] + '\t' + p[1] + '\t' \
