@@ -51,7 +51,7 @@ def user_graph():
     nodes_out = open(NODES, 'w')
     nodes_out.write('Id\tLabel\tWeight\n')
     for sub in d:
-        nodes_out.write(str(i) + '\t' + sub + '\t' \
+        nodes_out.write(str(sub_id[sub]) + '\t' + sub + '\t' \
                         + str(len(d[sub])) + '\n')
     nodes_out.close()  
     # write edges file
