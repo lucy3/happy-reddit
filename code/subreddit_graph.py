@@ -59,7 +59,7 @@ def user_graph():
     edges_out = open(EDGES, 'w')
     edges_out.write('Source\tTarget\tWeight\n')
     for p in pairs: 
-        weight = len(d[p[0]] & d[p[1]])
+        weight = len(d[p[0]]&d[p[1]])/float(len(d[p[0]]|d[p[1]]))
         edges_out.write(str(sub_id[p[0]]) + '\t' + \
                         str(sub_id[p[1]]) + '\t' + \
                         str(weight) + '\n')
