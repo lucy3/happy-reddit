@@ -8,6 +8,7 @@ def get_lexical_features():
     '''
     Load lexical features
     '''
+    pass
 
 def get_features(): 
     '''
@@ -23,6 +24,7 @@ def get_labels(popularity=False):
     @return
     - dictionary of ID: label
     '''
+    pass
     
 def plot_roc(clf, X, y):
     '''

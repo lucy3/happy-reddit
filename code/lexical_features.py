@@ -5,7 +5,7 @@ Should be parallelized:
 xargs -a /dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05 -0 -d '\n' -P 144 -n 1 python lexical_features.py
 
 Output is named
-linkid_commentid.npy
+subreddit_linkid_commentid.npy
 """
 import json
 import numpy
@@ -18,6 +18,7 @@ POST_IDs = "../data/post_IDs.txt"
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 OUTPUT = "../logs/lexical_vectors/"
 LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
+TOP_100 = "../logs/top_100subreddits.txt"
 
 def get_liwc_groups():
     """
@@ -92,21 +93,20 @@ def get_lexical_features(text, post_id, comment_id, subreddit, edited, \
     np.save(OUTPUT + subreddit + '_' + post_id + '_' + comment_id + '.npy', all_feats)
 
 def main():
+    subreddits = set()
+    with open(TOP_100, 'r') as top: 
+        for line in top: 
+            subreddits.add(line.strip())
     with open(POST_IDs, 'r') as post_id_file: 
         post_ids = set(post_id_file.read().split())
-    i = 0
     star_words, all_words, liwc_names = get_liwc_groups()
-    with open(INPUT, 'r') as input_file:
-        for line in input_file:
-            #comment = json.loads(sys.argv[1])
-            comment = json.loads(line)
-            post = comment['link_id'].split('_')[-1]
-            if post in post_ids: 
-                get_lexical_features(comment['body'], post, comment['id'], \
-                                     comment['subreddit'], comment['edited'], \
-                                    star_words, all_words, liwc_names)
-                i += 1
-            if i > 500: break
+    comment = json.loads(sys.argv[1])
+    post = comment['link_id'].split('_')[-1]
+    subreddit = comment['subreddit']
+    if post in post_ids and subreddit in subreddits: 
+        get_lexical_features(comment['body'], post, comment['id'], \
+                             subreddit, comment['edited'], \
+                            star_words, all_words, liwc_names)
 
 if __name__ == "__main__":
     main()
