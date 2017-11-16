@@ -18,7 +18,8 @@ POST_IDs = "../data/post_IDs.txt"
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 OUTPUT = "../logs/lexical_vectors/"
 LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
-TOP_100 = "../logs/top_100subreddits.txt"
+TOP_100 = "../logs/top_100subreddits_comments.txt"
+GILDS = "../logs/comment_gilds_balanced.json"
 
 def get_liwc_groups():
     """
@@ -81,9 +82,10 @@ def get_lexical_features(text, post_id, comment_id, subreddit, edited, \
     if edited: 
         # remove edits, since they may thank the gilder after the fact
         text_lines = text.split('\n')
-        text_lines = [line for line in text_lines if 'Edit:' not in line and \
-                  'ETA:' not in line and 'edit:' not in line \
-                  and 'eta:' not in line]
+        text_lines = [line for line in text_lines if 'Edit' not in line and \
+                              'ETA' not in line and 'edit' not in line \
+                              and 'eta' not in line and 'gold' not in line and \
+                                  'Gold' not in line and 'gild' not in line]
         text = '\n'.join(text_lines)
     text = re.sub(r'[^\w\s]','',text)
     text = text.lower().encode('utf-8')
@@ -93,18 +95,24 @@ def get_lexical_features(text, post_id, comment_id, subreddit, edited, \
     np.save(OUTPUT + subreddit + '_' + post_id + '_' + comment_id + '.npy', all_feats)
 
 def main():
+    with open(GILDS, 'r') as gilds_file:
+        gilds = json.load(gilds_file)
+    gilded_dataset = set(gilds.keys())
+    '''
     subreddits = set()
     with open(TOP_100, 'r') as top: 
         for line in top: 
             subreddits.add(line.strip())
     with open(POST_IDs, 'r') as post_id_file: 
         post_ids = set(post_id_file.read().split())
+    '''
     star_words, all_words, liwc_names = get_liwc_groups()
     comment = json.loads(sys.argv[1])
     post = comment['link_id'].split('_')[-1]
     subreddit = comment['subreddit']
-    if post in post_ids and subreddit in subreddits: 
-        get_lexical_features(comment['body'], post, comment['id'], \
+    comment_id = comment['id']
+    if subreddit+'_'+post+'_'+comment_id in gilded_dataset: 
+        get_lexical_features(comment['body'], post, comment_id, \
                              subreddit, comment['edited'], \
                             star_words, all_words, liwc_names)
 

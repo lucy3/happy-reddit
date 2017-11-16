@@ -10,13 +10,15 @@ import re
 import time
 from scipy.spatial.distance import cosine
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+from nltk.corpus import stopwords
 
 POSTS = "/dfs/dataset/infolab/Reddit/submissions/2015/RS_2015-05"
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 SUBREDDIT_USERS = "../data/subreddit_users.json"
 EDGES = "../logs/user_edges.tsv"
 NODES = "../logs/user_nodes.tsv"
-TOP_100 = "../logs/top_100subreddits.txt"
+TOP_100 = "../logs/top_100subreddits_comments.txt"
 SUBREDDIT_MODEL = "../logs/subreddit_model.doc2vec"
 SUBREDDIT_TITLES = "../logs/subreddit_titles.json"
 EDGES2 = "../logs/topic_edges.tsv"
@@ -79,10 +81,6 @@ def user_graph():
 
 def subreddit_docs():
     '''
-    For each subreddit, create a TaggedDocument
-    representing it using the titles of its posts.
-    Then, convert the subreddits into vectors
-    and save the model. 
     '''
     start = time.time()
     subreddits = set()
@@ -102,24 +100,27 @@ def subreddit_docs():
                     title = title.lower().split()
                     subreddit_contents[subreddit].extend(title)
     end = time.time()
-    print "TIME before training model:", end-start
+    print "TIME getting titles:", end-start
     with open(SUBREDDIT_TITLES, 'w') as titles_file:
         json.dump(subreddit_contents, titles_file)
         
 def tf_idf():
     with open(SUBREDDIT_TITLES, 'r') as titles_file:
         subreddit_contents = json.load(titles_file)
-    tfidf = TfidfVectorizer(norm='l2', sublinear_tf=True, \
-                                stop_words='english')
+    tfidf = TfidfVectorizer(norm='l2', stop_words='english', \
+                            sublinear_tf=True)
     all_documents = []
-    sorted_subs = subreddit_contents.keys()
-    for subreddit in sorted(sorted_subs):
+    sorted_subs = sorted(subreddit_contents.keys())
+    for i, subreddit in enumerate(sorted_subs):
         contents = ' '.join(subreddit_contents[subreddit])
         all_documents.append(contents)
     vectors = tfidf.fit_transform(all_documents)
+    svd = TruncatedSVD(n_components=500, random_state=42)
+    new_vectors = svd.fit_transform(vectors)
+    # save the vectors
     res = {}
-    for i, v in enumerate(vectors):
-        res[sorted_subs[i]] = v.toarray().tolist()
+    for i, v in enumerate(new_vectors):
+        res[sorted_subs[i]] = v.tolist()
     with open(TF_IDF, 'w') as tfidf_file:
         json.dump(res, tfidf_file)
         
@@ -131,18 +132,19 @@ def train_doc2vec():
         doc = TaggedDocument(words=subreddit_contents[subreddit],\
                              tags=[subreddit])
         documents.append(doc)
-    model = Doc2Vec(size=300, window=8, min_count=5, dm=0, dbow_words=1, workers=40)
+    model = Doc2Vec(size=50, window=8, min_count=5, workers=40)
     model.build_vocab(documents)
     model.train(documents, total_examples=model.corpus_count, epochs=20)
     model.save(SUBREDDIT_MODEL)
     
-def create_topic_graph(doc2vec=False):
+def create_topic_graph(doc2vec=False, jaccard=False):
     with open(SUBREDDIT_USERS, 'r') as inp: 
         data = json.load(inp)
     subreddits = set()
     with open(TOP_100, 'r') as top: 
         for line in top: 
             subreddits.add(line.strip())
+    subreddits.remove('fatpeoplehate')
     d = {}
     for sub in data:
         if sub in subreddits:
@@ -158,10 +160,14 @@ def create_topic_graph(doc2vec=False):
     for sub in d:
         nodes_out.write(str(sub_id[sub]) + '\t' + sub + '\t' \
                         + str(len(d[sub])) + '\n')
-    nodes_out.close()  
+    nodes_out.close() 
     # write edges file
     if doc2vec:
         model = Doc2Vec.load(SUBREDDIT_MODEL)
+    elif jaccard: 
+        with open(SUBREDDIT_TITLES, 'r') as titles_file:
+            subreddit_contents = json.load(titles_file)
+        stop = set(stopwords.words('english'))
     else:
         with open(TF_IDF, 'r') as tfidf_file:
             tfidf = json.load(tfidf_file)
@@ -172,10 +178,15 @@ def create_topic_graph(doc2vec=False):
         if doc2vec:
             vector1 = model.docvecs[p[0]]
             vector2 = model.docvecs[p[1]]
-        else:
+        elif not jaccard:
             vector1 = tfidf[p[0]]
             vector2 = tfidf[p[1]]
-        weight = cosine(vector1, vector2)
+        if not jaccard:
+            weight = cosine(vector1, vector2)
+        else:
+            set1 = set(subreddit_contents[p[0]])-stop
+            set2 = set(subreddit_contents[p[1]])-stop
+            weight = len(set1&set2)/float(len(set1|set2))
         edges_out.write(str(sub_id[p[0]]) + '\t' + \
                         str(sub_id[p[1]]) + '\t' + \
                         str(weight) + '\n')
@@ -187,11 +198,12 @@ def topic_graph():
     Maybe post title similarity
     """
     #subreddit_docs()
-    tf_idf()
+    #tf_idf()
     #train_doc2vec()
-    create_topic_graph()
+    create_topic_graph(jaccard=True)
 
 def main():
+    #generate_user_sets()
     #user_graph()
     topic_graph()
 

@@ -1,12 +1,34 @@
 """
 Classifier
 """
+import json
+import numpy as np
+import os, sys
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from scipy import interp
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.utils import shuffle
+from sklearn.model_selection import cross_val_predict, train_test_split, StratifiedKFold
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score, roc_curve, auc
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC, LinearSVC
+from sklearn.model_selection import ShuffleSplit
+from sklearn.neural_network import MLPClassifier
 
 ROC_OUT = '../logs/roc_plot'
+GILDS_BALANCED = "../logs/comment_gilds_balanced.json"
 
 def get_lexical_features():
     '''
     Load lexical features
+    '''
+    pass
+
+def get_social_features():
+    '''
+    Load social features
     '''
     pass
 
@@ -16,6 +38,7 @@ def get_features():
     - dictionary of ID: vector 
     '''
     get_lexical_features()
+    get_social_features()
     
 def get_labels(popularity=False):
     '''
@@ -24,7 +47,13 @@ def get_labels(popularity=False):
     @return
     - dictionary of ID: label
     '''
-    pass
+    labels = []
+    with open(GILDS_BALANCED, 'r') as input_file:
+        gilds = json.load(input_file)
+    sorted_gilds = sorted(gilds.keys())
+    for comment in sorted_gilds:
+        labels.append(sorted_gilds[comment])
+    return np.array(labels)
     
 def plot_roc(clf, X, y):
     '''
