@@ -19,6 +19,7 @@ from sklearn.neural_network import MLPClassifier
 
 ROC_OUT = '../logs/roc_plot'
 GILDS_BALANCED = "../logs/comment_gilds_balanced.json"
+VECTORS = "../logs/gilded_samples_features/social_features/"
 
 def get_lexical_features():
     '''
@@ -30,7 +31,18 @@ def get_social_features():
     '''
     Load social features
     '''
-    pass
+    with open(GILDS_BALANCED, 'r') as input_file:
+        gilds = json.load(input_file)
+    sorted_gilds = sorted(gilds.keys())
+    X = []
+    for comment in sorted_gilds:
+        try:
+            vec = np.load(VECTORS+comment+'.npy')
+            X.append(vec)
+        except:
+            pass
+    print len(X)
+    return np.array(X)
 
 def get_features(): 
     '''
@@ -38,7 +50,8 @@ def get_features():
     - dictionary of ID: vector 
     '''
     get_lexical_features()
-    get_social_features()
+    feats = get_social_features()
+    return feats
     
 def get_labels(popularity=False):
     '''
@@ -52,7 +65,11 @@ def get_labels(popularity=False):
         gilds = json.load(input_file)
     sorted_gilds = sorted(gilds.keys())
     for comment in sorted_gilds:
-        labels.append(sorted_gilds[comment])
+        try:
+            vec = np.load(VECTORS+comment+'.npy')
+            labels.append(gilds[comment])
+        except:
+            pass
     return np.array(labels)
     
 def plot_roc(clf, X, y):
@@ -106,8 +123,10 @@ def plot_roc(clf, X, y):
 def main():
     features = get_features()
     labels = get_labels()
+    print np.sum(labels)
+    print "Done getting features"
     # TODO: sort by ID, put features and labels into numpy arrays
-    X, y = shuffle(X, y, random_state=0)
+    X, y = shuffle(features, labels, random_state=0)
     clf = RandomForestClassifier(n_estimators=500, min_samples_leaf=5, 
                                  random_state=0, n_jobs=-1)
     y_pred = cross_val_predict(clf, X, y, cv=5, n_jobs=-1)
@@ -116,12 +135,12 @@ def main():
                                           labels=[True, False], average='macro')
     print "p macro:", p_macro, "\nr macro:", \
         r_macro, "\nf macro:", f_macro, "\nsupport macro", support_macro
-    plot_roc(clf, X, y)
-    clf.fit(X, y)
-    print "Features sorted by their score:"
-    print sorted(zip(map(lambda x: round(x, 4), 
-                clf.feature_importances_), feature_names), 
-                         reverse=True)
+    #plot_roc(clf, X, y)
+    #clf.fit(X, y)
+    #print "Features sorted by their score:"
+    #print sorted(zip(map(lambda x: round(x, 4), 
+    #            clf.feature_importances_), feature_names), 
+    #                     reverse=True)
 
 if __name__ == '__main__':
     main()

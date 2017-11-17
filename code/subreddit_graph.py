@@ -115,7 +115,7 @@ def tf_idf():
         contents = ' '.join(subreddit_contents[subreddit])
         all_documents.append(contents)
     vectors = tfidf.fit_transform(all_documents)
-    svd = TruncatedSVD(n_components=500, random_state=42)
+    svd = TruncatedSVD(n_components=50, random_state=42)
     new_vectors = svd.fit_transform(vectors)
     # save the vectors
     res = {}
@@ -182,7 +182,7 @@ def create_topic_graph(doc2vec=False, jaccard=False):
             vector1 = tfidf[p[0]]
             vector2 = tfidf[p[1]]
         if not jaccard:
-            weight = cosine(vector1, vector2)
+            weight = 1-cosine(vector1, vector2)
         else:
             set1 = set(subreddit_contents[p[0]])-stop
             set2 = set(subreddit_contents[p[1]])-stop
@@ -198,9 +198,9 @@ def topic_graph():
     Maybe post title similarity
     """
     #subreddit_docs()
-    #tf_idf()
+    tf_idf()
     #train_doc2vec()
-    create_topic_graph(jaccard=True)
+    create_topic_graph()
 
 def main():
     #generate_user_sets()
