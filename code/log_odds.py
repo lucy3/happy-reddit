@@ -52,6 +52,8 @@ def do_log_odds():
             if name in gilds:
                 text = comment['body']
                 edited = comment['edited']
+                text = re.sub(r'[^\w\s]','',text)
+                text = text.lower().encode('utf-8')
                 if edited: 
                     # remove edits, since they may thank the gilder after the fact
                     text_lines = text.split('\n')
@@ -60,8 +62,6 @@ def do_log_odds():
                               and 'eta' not in line and 'gold' not in line and \
                                   'Gold' not in line and 'gild' not in line]
                     text = '\n'.join(text_lines)
-                text = re.sub(r'[^\w\s]','',text)
-                text = text.lower().encode('utf-8')
                 if gilds[name] == 1:
                     gilded_lines.append(text)
                 else:
