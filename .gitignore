@@ -1,1 +1,3 @@
 *.pyc
+bayesequal.py
+logs/lexical_vectors/

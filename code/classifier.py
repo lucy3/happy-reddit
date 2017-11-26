@@ -16,42 +16,57 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC, LinearSVC
 from sklearn.model_selection import ShuffleSplit
 from sklearn.neural_network import MLPClassifier
+from empath import Empath
 
 ROC_OUT = '../logs/roc_plot'
 GILDS_BALANCED = "../logs/comment_gilds_balanced.json"
-VECTORS = "../logs/gilded_samples_features/social_features/"
+SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/gilded_samples_features/social_features/"
+LIWC_VECTORS = "../logs/liwc_vectors/"
+LEXICAL_VECTORS = "../logs/lexical_vectors/"
+LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
 
-def get_lexical_features():
-    '''
-    Load lexical features
-    '''
-    pass
+def get_liwc_names():
+    """
+    Parses LIWC file
+    return:
+    - words with suffixed endings, other words
+    - list of liwc group names
+    """
+    liwc = open(LIWC, 'r')
+    liwc_names = [] 
+    for line in liwc:
+        l = line.split()
+        g = l[0]
+        liwc_names.append(g)
+    return liwc_names
 
-def get_social_features():
-    '''
-    Load social features
-    '''
-    with open(GILDS_BALANCED, 'r') as input_file:
-        gilds = json.load(input_file)
-    sorted_gilds = sorted(gilds.keys())
-    X = []
-    for comment in sorted_gilds:
-        try:
-            vec = np.load(VECTORS+comment+'.npy')
-            X.append(vec)
-        except:
-            pass
-    print len(X)
-    return np.array(X)
+def get_feature_names():
+    social_names = ['status','parent_pop','sub_loyalty','user_loyalty','time_past']
+    liwc_names = get_liwc_names()
+    relevance_names = ['post_rel', 'parent_rel']
+    style_name = ['subreddit_prob']
+    lexicon = Empath()
+    empath_names = sorted(lexicon.cats.keys())
+    brown_names = ['unigram_distinct', 'bigram_distinct']
+    return liwc_names + social_names + relevance_names + \
+        style_name + empath_names + brown_names
 
 def get_features(): 
     '''
     @return
     - dictionary of ID: vector 
     '''
-    get_lexical_features()
-    feats = get_social_features()
-    return feats
+    with open(GILDS_BALANCED, 'r') as input_file:
+        gilds = json.load(input_file)
+    sorted_gilds = sorted(gilds.keys())
+    X = []
+    for comment in sorted_gilds:
+        social = np.load(SOCIAL_VECTORS+comment+'.npy')
+        liwc = np.load(LIWC_VECTORS+comment+'.npy')
+        lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
+        vec = np.concatenate((liwc, social, lexical))
+        X.append(vec)
+    return np.array(X)
     
 def get_labels(popularity=False):
     '''
@@ -65,11 +80,7 @@ def get_labels(popularity=False):
         gilds = json.load(input_file)
     sorted_gilds = sorted(gilds.keys())
     for comment in sorted_gilds:
-        try:
-            vec = np.load(VECTORS+comment+'.npy')
-            labels.append(gilds[comment])
-        except:
-            pass
+        labels.append(gilds[comment])
     return np.array(labels)
     
 def plot_roc(clf, X, y):
@@ -123,10 +134,11 @@ def plot_roc(clf, X, y):
 def main():
     features = get_features()
     labels = get_labels()
-    print np.sum(labels)
+    feature_names = get_feature_names()
     print "Done getting features"
     # TODO: sort by ID, put features and labels into numpy arrays
     X, y = shuffle(features, labels, random_state=0)
+    
     clf = RandomForestClassifier(n_estimators=500, min_samples_leaf=5, 
                                  random_state=0, n_jobs=-1)
     y_pred = cross_val_predict(clf, X, y, cv=5, n_jobs=-1)
@@ -136,11 +148,11 @@ def main():
     print "p macro:", p_macro, "\nr macro:", \
         r_macro, "\nf macro:", f_macro, "\nsupport macro", support_macro
     #plot_roc(clf, X, y)
-    #clf.fit(X, y)
-    #print "Features sorted by their score:"
-    #print sorted(zip(map(lambda x: round(x, 4), 
-    #            clf.feature_importances_), feature_names), 
-    #                     reverse=True)
+    clf.fit(X, y)
+    print "Features sorted by their score for Random Forest:"
+    print sorted(zip(map(lambda x: round(x, 4), 
+                clf.feature_importances_), feature_names), 
+                         reverse=True)
 
 if __name__ == '__main__':
     main()
