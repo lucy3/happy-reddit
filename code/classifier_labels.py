@@ -6,8 +6,7 @@ subreddit_linkid_commentid
 
 And the values are either
 gilded (0/1), score (int), or rank
-where rank 1 if a comment is in the top half of
-scores on that post or 0 if it is in the lower half
+where rank is dependent on quartile: 1 (top), 2, 3, 4 (bottom)
 """
 import json
 from collections import defaultdict
@@ -17,14 +16,14 @@ INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 SCORES = "../logs/comment_scores.json"
 RANK = "../logs/comment_rank.json"
 GILDS = "../logs/comment_gilds.json"
-GILDS_BALANCED = "../logs/comment_gilds_balanced.json"
-RANK_SUBSET = "../logs/comment_rank_subset.json"
+GILDS_CLASSIFIER = "../logs/comment_gilds_classifier.json"
+RANK_CLASSIFIER = "../logs/comment_rank_classifier.json"
 POST_IDs = "../data/post_IDs.txt"
 TOP_100 = "../logs/top_100subreddits_comments.txt"
 
 def get_rank():
     '''
-    For each post, rank its comments
+    For each post, rank its comments into quartile
     '''
     with open(SCORES, 'r') as scores_file:
         scores = json.load(scores_file)
@@ -39,12 +38,18 @@ def get_rank():
     rank = {}
     for pc in posts_comments:
         sorted_posts = sorted(posts_comments[pc], key=lambda tup: tup[1])
-        halfway = len(sorted_posts)/2
+        upper = 3*len(sorted_posts)/4.0
+        middle = len(sorted_posts)/2.0
+        lower = len(sorted_posts)/4.0
         for i, com in enumerate(sorted_posts):
-            if i >= halfway:
+            if i >= upper:
                 rank[pc + '_' + com[0]] = 1
+            elif i >= middle:
+                rank[pc + '_' + com[0]] = 2
+            elif i >= lower:
+                rank[pc + '_' + com[0]] = 3
             else:
-                rank[pc + '_' + com[0]] = 0
+                rank[pc + '_' + com[0]] = 4
     assert len(set(scores.keys())) == len(set(rank.keys()))
     with open(RANK, 'w') as rank_file:
         json.dump(rank, rank_file)
@@ -91,40 +96,55 @@ def balance_gilds():
     random.seed(0)
     with open(GILDS, 'r') as gilds_file:
         gilds = json.load(gilds_file)
-    gilds_balanced = {}
+    gilds_data = {}
     non_gilded = []
     for name in gilds: 
         if gilds[name] == 1: 
-            gilds_balanced[name] = 1
+            gilds_data[name] = 1
         else:
             non_gilded.append(name)
-    num_gilds = len(gilds_balanced)
-    non_gilded_samp = random.sample(non_gilded, num_gilds)
+    num_gilds = len(gilds_data)
+    print "Number of gilded samples", num_gilds
+    train_size = 9000
+    test_size = num_gilds - 9000
+    non_gilded_samp = random.sample(non_gilded, train_size + test_size*5)
     for samp in non_gilded_samp: 
-        gilds_balanced[samp] = 0
-    with open(GILDS_BALANCED, 'w') as gilds_balanced_file:
-        json.dump(gilds_balanced, gilds_balanced_file) 
+        gilds_data[samp] = 0
+    print "Total samples:", len(gilds_data.keys())
+    with open(GILDS_CLASSIFIER, 'w') as gilds_data_file:
+        json.dump(gilds_data, gilds_data_file) 
         
 def subset_rank():
+    # 6000 for each 
     random.seed(0)
     with open(RANK, 'r') as rank_file:
         rank = json.load(rank_file)
     rank_subset = {}
-    total_top = 10000
-    total_bottom = 10000
+    one = 6000
+    two = 6000
+    three = 6000
+    four = 6000
     rank_keys = rank.keys()
     random.shuffle(rank_keys)
     for name in rank_keys: 
-        if rank[name] == 1 and total_top > 0:
+        if rank[name] == 1 and one > 0:
             rank_subset[name] = 1
-            total_top -= 1
-        elif rank[name] == 0 and total_bottom > 0:
-            rank_subset[name] = 0
-            total_bottom -= 1
-        if total_top <= 0 and total_bottom <= 0:
+            one -= 1
+        elif rank[name] == 2 and two > 0:
+            rank_subset[name] = 2
+            two -= 1
+        elif rank[name] == 3 and three > 0:
+            rank_subset[name] = 3
+            three -= 1
+        elif rank[name] == 4 and four > 0:
+            rank_subset[name] = 4
+            four -= 1
+        if one <= 0 and two <= 0 \
+            and three <= 0 and four <= 0:
             break
-    with open(RANK_SUBSET, 'w') as rank_subset_file:
-        json.dump(rank_subset, rank_subset_file)
+    print "Total samples:", len(rank_subset.keys())
+    with open(RANK_CLASSIFIER, 'w') as rank_data_file:
+        json.dump(rank_subset, rank_data_file)
 
 def main():
     #get_gilds_scores()
