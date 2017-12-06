@@ -102,8 +102,8 @@ def balance_gilds():
             non_gilded.append(name)
     num_gilds = len(gilds_data)
     print "Number of gilded samples", num_gilds
-    train_size = 9000
-    test_size = num_gilds - 9000
+    train_size = 8364
+    test_size = num_gilds - train_size
     non_gilded_samp = random.sample(non_gilded, train_size + test_size*5)
     for samp in non_gilded_samp: 
         gilds_data[samp] = 0
@@ -117,8 +117,8 @@ def subset_rank():
     with open(RANK, 'r') as rank_file:
         rank = json.load(rank_file)
     rank_subset = {}
-    one = 12000
-    zero = 12000
+    one = 12500
+    zero = 12500
     rank_keys = rank.keys()
     random.shuffle(rank_keys)
     for name in rank_keys: 
@@ -158,9 +158,10 @@ def count_community_gilds():
 
 def main():
     #get_gilds_scores()
-    #get_rank()
-    #balance_gilds()
-    #subset_rank()
+    get_rank()
+    balance_gilds()
+    subset_rank()
+    #count_community_gilds()
 
 if __name__ == "__main__":
     main()
