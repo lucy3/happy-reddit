@@ -38,25 +38,27 @@ LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
 
 def svc_param_selection(X, y, nfolds):
     # for tuning SVM 
-    # best was {'loss': 'hinge', 'C': 18, 'tol': 0.5}
+    # best was {'loss': 'hinge', 'C': 14, 'tol': 0.5}
     # range for C: [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     # range for tols: [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7]
     # losses: ['hinge','squared_hinge']
-    tols = [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7]
-    param_grid = {'tol' : tols}
-    grid_search = GridSearchCV(LinearSVC(loss='hinge', C=18), param_grid, cv=nfolds)
+    Cs = [14, 16, 18, 20]
+    param_grid = {'C' : Cs}
+    grid_search = GridSearchCV(LinearSVC(tol=0.5, loss='hinge'), param_grid, cv=nfolds)
     grid_search.fit(X, y)
     return grid_search.best_params_
 
 def rf_param_selection(X, y, nfolds):
     # for tuning Random Forest
-    # BEST: {'n_estimators': 500, 'min_samples_leaf': 5}
+    # BEST: {'n_estimators': 500, 'min_samples_leaf': 5
+    # 'max_features': auto, 'min_samples_split': 3}
     # leaves: [1, 3, 5, 7, 9]
     # estimators: [100, 200, 300, 400, 500, 600]
-    leaves = [1, 3, 5, 7]
-    estimators = [300, 400, 500, 600]
-    param_grid = {'n_estimators': estimators, 'min_samples_leaf' : leaves}
-    grid_search = GridSearchCV(RandomForestClassifier(n_jobs=-1), param_grid, cv=nfolds)
+    # min_samples_split: [2, 3, 4, 5]
+    # max_features: ['auto', 'log2']
+    param_grid = {'min_samples_split': [3, 4, 5]}
+    grid_search = GridSearchCV(RandomForestClassifier(n_estimators=500, \
+                  min_samples_leaf=5, n_jobs=-1), param_grid, cv=nfolds)
     grid_search.fit(X, y)
     return grid_search.best_params_
 
@@ -127,13 +129,13 @@ def split(X, y):
     if DATA == "GILDS":
         gild_idx = np.where(y == 1)[0]
         nongild_idx = np.where(y == 0)[0]
-        y_train = np.concatenate((np.ones(9000), np.zeros(9000)))
-        y_test = np.concatenate((np.ones(len(gild_idx) - 9000), \
-                                np.zeros(len(nongild_idx) - 9000)))
-        X_train = np.concatenate((np.take(X, gild_idx[:9000], axis=0), \
-                                 np.take(X, nongild_idx[:9000], axis=0)), axis=0)
-        X_test = np.concatenate((np.take(X, gild_idx[9000:], axis=0), \
-                                np.take(X, nongild_idx[9000:], axis=0)), axis=0)
+        y_train = np.concatenate((np.ones(8364), np.zeros(8364)))
+        y_test = np.concatenate((np.ones(len(gild_idx) - 8364), \
+                                np.zeros(len(nongild_idx) - 8364)))
+        X_train = np.concatenate((np.take(X, gild_idx[:8364], axis=0), \
+                                 np.take(X, nongild_idx[:8364], axis=0)), axis=0)
+        X_test = np.concatenate((np.take(X, gild_idx[8364:], axis=0), \
+                                np.take(X, nongild_idx[8364:], axis=0)), axis=0)
         X_train, y_train = shuffle(X_train, y_train, random_state=0)
         X_test, y_test = shuffle(X_test, y_test, random_state=0)
     elif DATA == "RANK":
@@ -150,14 +152,12 @@ def main():
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
 
-
     X_train, X_test, y_train, y_test = split(X, y)
     print "Done splitting data"
-    print X_train.shape, X_test.shape, y_train.shape, y_test.shape
 
     out = open(RESULTS, 'w')
     clf = RandomForestClassifier(n_estimators=500, min_samples_leaf=5, 
-                                 random_state=0, n_jobs=-1) 
+                                 random_state=0, min_samples_split=3, n_jobs=-1) 
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print >> out,"RF Accuracy:", accuracy_score(y_test, y_pred)
@@ -171,7 +171,7 @@ def main():
                 clf.feature_importances_), feature_names), 
                          reverse=True)
                          
-    clf = LinearSVC(loss='hinge', C=18, tol=0.5)
+    clf = LinearSVC(loss='hinge', C=14, tol=0.5)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print >> out,"SVM Accuracy:", accuracy_score(y_test, y_pred)

@@ -20,7 +20,7 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import string
 from empath import Empath
 
-DATA = "GILDS"
+DATA = "RANK"
 if DATA == "GILDS":
     INPUT = "../data/gilded_classifier_comments"
     POST_INPUT = "../data/gilded_classifier_posts"

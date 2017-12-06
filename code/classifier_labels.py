@@ -144,24 +144,28 @@ def count_community_gilds():
     with open(GILDS_CLASSIFIER, 'r') as gilds_file:
         gilds = json.load(gilds_file)
     subreddit_gilds = defaultdict(int) # subreddit: # of gilds
+    subreddit_total = defaultdict(int)
     for name in gilds:
         items = name.split('_')
         subreddit = '_'.join(items[:-2])
         if gilds[name] == 1:
             subreddit_gilds[subreddit] += 1
+        subreddit_total[subreddit] += 1
     for com in communities: 
         print com, 
+	total_total = 0
         total = 0
         for subred in communities[com]:
             total += subreddit_gilds[subred]
-        print total
+            total_total += subreddit_total[subred]
+        print total, total_total
 
 def main():
     #get_gilds_scores()
-    get_rank()
-    balance_gilds()
-    subset_rank()
-    #count_community_gilds()
+    #get_rank()
+    #balance_gilds()
+    #subset_rank()
+    count_community_gilds()
 
 if __name__ == "__main__":
     main()
