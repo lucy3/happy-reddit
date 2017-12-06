@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
 
-DATA = "GILDS"
+DATA = "RANK"
 if DATA == "GILDS":
     GILDS_BALANCED = "../logs/comment_gilds_classifier.json"
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/gilds_classifier_features/social_features/"
@@ -149,7 +149,8 @@ def main():
     X, y = shuffle(features, labels, random_state=0)
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
-    
+
+
     X_train, X_test, y_train, y_test = split(X, y)
     print "Done splitting data"
     print X_train.shape, X_test.shape, y_train.shape, y_test.shape
@@ -173,7 +174,7 @@ def main():
     clf = LinearSVC(loss='hinge', C=18, tol=0.5)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
-    print >> out,"RF Accuracy:", accuracy_score(y_test, y_pred)
+    print >> out,"SVM Accuracy:", accuracy_score(y_test, y_pred)
     p_macro, r_macro, f_macro, support_macro \
         = precision_recall_fscore_support(y_test, y_pred, \
                                           labels=[True, False], average='macro')

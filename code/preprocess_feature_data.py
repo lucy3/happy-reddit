@@ -17,12 +17,19 @@ from nltk import ngrams
 from nltk.corpus import brown
 import string
 
-GILDS = "../logs/comment_gilds_balanced.json"
+DATA = "RANK"
+if DATA == "GILDS": 
+    GILDS = "../logs/comment_gilds_classifier.json"
+    OUTPUT = "../data/gilded_classifier_comments"
+    POST_OUTPUT = "../data/gilded_classifier_posts"
+    PARENT_OUTPUT = "../data/gilded_classifier_parents"
+elif DATA == "RANK": 
+    GILDS = "../logs/comment_rank_classifier.json"
+    OUTPUT = "../data/rank_classifier_comments"
+    POST_OUTPUT = "../data/rank_classifier_posts"
+    PARENT_OUTPUT = "../data/rank_classifier_parents"
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 POST_INPUT = "/dfs/dataset/infolab/Reddit/submissions/2015/RS_2015-05"
-OUTPUT = "../data/gilded_balanced_comments"
-POST_OUTPUT = "../data/gilded_balanced_posts"
-PARENT_OUTPUT = "../data/gilded_balanced_parents"
 BROWN_COUNTS = "../logs/brown_counts.json"
 TOP_100 = "../logs/top_100subreddits_comments.txt"
 SUB_PROBS = "../logs/subreddit_word_probs.json"
@@ -133,7 +140,7 @@ def count_subreddit():
         for line in top: 
             subreddits.add(line.strip())
     res = defaultdict(Counter)
-    subreddit_comments = Counter() # numebr of comments in each subreddit
+    subreddit_comments = Counter() # number of comments in each subreddit
     i = 0
     with open(INPUT, 'r') as input_file:
         for line in input_file:
@@ -156,8 +163,8 @@ def count_subreddit():
         json.dump(ret, outfile)
 
 def main():
-    #comment_bodies()
-    #post_bodies()
+    comment_bodies()
+    post_bodies()
     parent_bodies()
     #count_brown()
     #count_subreddit()

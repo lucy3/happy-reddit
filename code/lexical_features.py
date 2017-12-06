@@ -20,14 +20,19 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import string
 from empath import Empath
 
-INPUT = "../data/gilded_balanced_comments"
-OUTPUT = "../logs/lexical_vectors/"
-GILDS = "../logs/comment_gilds_balanced.json"
-POST_INPUT = "../data/gilded_balanced_posts"
-PARENT_INPUT = "../data/gilded_balanced_parents"
+DATA = "GILDS"
+if DATA == "GILDS":
+    INPUT = "../data/gilded_classifier_comments"
+    POST_INPUT = "../data/gilded_classifier_posts"
+    PARENT_INPUT = "../data/gilded_classifier_parents"
+    OUTPUT = "../logs/gild_lexical_vectors/"
+elif DATA == "RANK":
+    INPUT = "../data/rank_classifier_comments"
+    POST_INPUT = "../data/rank_classifier_posts"
+    PARENT_INPUT = "../data/rank_classifier_parents"
+    OUTPUT = "../logs/rank_lexical_vectors/"
 BROWN_COUNTS = "../logs/brown_counts.json"
 SUB_PROBS = "../logs/subreddit_word_probs.json"
-LOG_ODDS = "../logs/log_odds/"
 
 def get_relevance(split_text, parent_text, post_text):
     '''

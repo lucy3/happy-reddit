@@ -14,11 +14,17 @@ from collections import defaultdict, Counter
 import numpy as np
 import time
 
+DATA = "RANK"
+if DATA == "GILDS":
+    INPUT = "../data/gilded_classifier_comments"
+    OUTPUT = "../logs/gild_liwc_vectors/"
+    GILDS = "../logs/comment_gilds_classifier.json"
+elif DATA == "RANK":
+    INPUT = "../data/rank_classifier_comments"
+    OUTPUT = "../logs/rank_liwc_vectors/"
+    GILDS = "../logs/comment_rank_classifier.json"
 POST_IDs = "../data/post_IDs.txt"
-INPUT = "../data/gilded_balanced_comments"
-OUTPUT = "../logs/liwc_vectors/"
 LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
-GILDS = "../logs/comment_gilds_balanced.json"
 
 def get_liwc_groups():
     """

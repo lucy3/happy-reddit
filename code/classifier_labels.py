@@ -20,6 +20,7 @@ GILDS_CLASSIFIER = "../logs/comment_gilds_classifier.json"
 RANK_CLASSIFIER = "../logs/comment_rank_classifier.json"
 POST_IDs = "../data/post_IDs.txt"
 TOP_100 = "../logs/top_100subreddits_comments.txt"
+COMMUNITY = "../results/communities.txt"
 
 def get_rank():
     '''
@@ -38,19 +39,15 @@ def get_rank():
     rank = {}
     for pc in posts_comments:
         sorted_posts = sorted(posts_comments[pc], key=lambda tup: tup[1])
-        upper = 3*len(sorted_posts)/4.0
-        middle = len(sorted_posts)/2.0
-        lower = len(sorted_posts)/4.0
-        for i, com in enumerate(sorted_posts):
-            if i >= upper:
-                rank[pc + '_' + com[0]] = 1
-            elif i >= middle:
-                rank[pc + '_' + com[0]] = 2
-            elif i >= lower:
-                rank[pc + '_' + com[0]] = 3
-            else:
-                rank[pc + '_' + com[0]] = 4
-    assert len(set(scores.keys())) == len(set(rank.keys()))
+        if len(sorted_posts) >= 4:
+        # check each post has at least 4 comments
+            upper = 3*len(sorted_posts)/4.0
+            lower = len(sorted_posts)/4.0
+            for i, com in enumerate(sorted_posts):
+                if i >= upper:
+                    rank[pc + '_' + com[0]] = 1
+                elif i < lower:
+                    rank[pc + '_' + com[0]] = 0
     with open(RANK, 'w') as rank_file:
         json.dump(rank, rank_file)
 
@@ -115,42 +112,55 @@ def balance_gilds():
         json.dump(gilds_data, gilds_data_file) 
         
 def subset_rank():
-    # 6000 for each 
+    # 12000 for each 
     random.seed(0)
     with open(RANK, 'r') as rank_file:
         rank = json.load(rank_file)
     rank_subset = {}
-    one = 6000
-    two = 6000
-    three = 6000
-    four = 6000
+    one = 12000
+    zero = 12000
     rank_keys = rank.keys()
     random.shuffle(rank_keys)
     for name in rank_keys: 
         if rank[name] == 1 and one > 0:
             rank_subset[name] = 1
             one -= 1
-        elif rank[name] == 2 and two > 0:
-            rank_subset[name] = 2
-            two -= 1
-        elif rank[name] == 3 and three > 0:
-            rank_subset[name] = 3
-            three -= 1
-        elif rank[name] == 4 and four > 0:
-            rank_subset[name] = 4
-            four -= 1
-        if one <= 0 and two <= 0 \
-            and three <= 0 and four <= 0:
+        elif rank[name] == 0 and zero > 0:
+            rank_subset[name] = 0
+            zero -= 1
+        if one <= 0 and zero <= 0:
             break
     print "Total samples:", len(rank_subset.keys())
     with open(RANK_CLASSIFIER, 'w') as rank_data_file:
         json.dump(rank_subset, rank_data_file)
+        
+        
+def count_community_gilds():
+    communities = {}
+    with open(COMMUNITY, 'r') as community_file:
+        for line in community_file:
+            contents = line.split()
+            communities[contents[0]] = set(contents[1:])
+    with open(GILDS_CLASSIFIER, 'r') as gilds_file:
+        gilds = json.load(gilds_file)
+    subreddit_gilds = defaultdict(int) # subreddit: # of gilds
+    for name in gilds:
+        items = name.split('_')
+        subreddit = '_'.join(items[:-2])
+        if gilds[name] == 1:
+            subreddit_gilds[subreddit] += 1
+    for com in communities: 
+        print com, 
+        total = 0
+        for subred in communities[com]:
+            total += subreddit_gilds[subred]
+        print total
 
 def main():
     #get_gilds_scores()
     #get_rank()
     #balance_gilds()
-    subset_rank()
+    #subset_rank()
 
 if __name__ == "__main__":
     main()
