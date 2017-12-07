@@ -1,0 +1,14 @@
+RF Accuracy: 0.683389830508
+p macro: 0.608901138206 
+r macro: 0.684474576271 
+f macro: 0.600873485697 
+support macro None
+Features sorted by their score for Random Forest:
+[(0.3176, 'time_past'), (0.2314, 'user_loyalty'), (0.2168, 'status'), (0.1637, 'parent_pop'), (0.0705, 'distance'), (0.0, 'sub_loyalty')]
+SVM Accuracy: 0.75593220339
+p macro: 0.574163262948 
+r macro: 0.579661016949 
+f macro: 0.576563465641 
+support macro None
+Features sorted by their score for LinearSVC:
+[(25.1004, 'distance'), (4.9048, 'parent_pop'), (3.5523, 'status'), (0.0, 'sub_loyalty'), (-0.7345, 'user_loyalty'), (-35.112, 'time_past')]
