@@ -96,13 +96,13 @@ def balance_gilds():
     gilds_data = {}
     non_gilded = []
     for name in gilds: 
-        if gilds[name] == 1: 
+        if gilds[name] >= 1: 
             gilds_data[name] = 1
         else:
             non_gilded.append(name)
     num_gilds = len(gilds_data)
     print "Number of gilded samples", num_gilds
-    train_size = 8364
+    train_size = 8842
     test_size = num_gilds - train_size
     non_gilded_samp = random.sample(non_gilded, train_size + test_size*5)
     for samp in non_gilded_samp: 
@@ -153,7 +153,7 @@ def count_community_gilds():
         subreddit_total[subreddit] += 1
     for com in communities: 
         print com, 
-    total_total = 0
+        total_total = 0
         total = 0
         for subred in communities[com]:
             total += subreddit_gilds[subred]
@@ -163,7 +163,7 @@ def count_community_gilds():
 def main():
     #get_gilds_scores()
     #get_rank()
-    #balance_gilds()
+    balance_gilds()
     #subset_rank()
     count_community_gilds()
 
