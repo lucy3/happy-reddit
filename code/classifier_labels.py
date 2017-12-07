@@ -153,7 +153,7 @@ def count_community_gilds():
         subreddit_total[subreddit] += 1
     for com in communities: 
         print com, 
-	total_total = 0
+    total_total = 0
         total = 0
         for subred in communities[com]:
             total += subreddit_gilds[subred]

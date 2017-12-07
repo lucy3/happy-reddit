@@ -21,7 +21,8 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
 
-DATA = "RANK"
+COM_ONLY = True
+DATA = "GILDS"
 if DATA == "GILDS":
     GILDS_BALANCED = "../logs/comment_gilds_classifier.json"
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/gilds_classifier_features/social_features/"
@@ -34,7 +35,10 @@ elif DATA == "RANK":
     LIWC_VECTORS = "../logs/rank_liwc_vectors/"
     LEXICAL_VECTORS = "../logs/rank_lexical_vectors/"
     RESULTS = "../results/rank_classifier.txt"
+if COM_ONLY: 
+    RESULTS = "../results/gilds_classifier_communities.txt"
 LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
+COMMUNITY = "../results/communities.txt"
 
 def svc_param_selection(X, y, nfolds):
     # for tuning SVM 
@@ -42,9 +46,10 @@ def svc_param_selection(X, y, nfolds):
     # range for C: [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     # range for tols: [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7]
     # losses: ['hinge','squared_hinge']
-    Cs = [14, 16, 18, 20]
-    param_grid = {'C' : Cs}
-    grid_search = GridSearchCV(LinearSVC(tol=0.5, loss='hinge'), param_grid, cv=nfolds)
+    Cs = [8, 10, 12, 14]
+    tols = [0.005, 0.01, 0.05, 0.1]
+    param_grid = {'C' : Cs, 'tol' : tols}
+    grid_search = GridSearchCV(LinearSVC(loss='hinge'), param_grid, cv=nfolds)
     grid_search.fit(X, y)
     return grid_search.best_params_
 
@@ -56,9 +61,11 @@ def rf_param_selection(X, y, nfolds):
     # estimators: [100, 200, 300, 400, 500, 600]
     # min_samples_split: [2, 3, 4, 5]
     # max_features: ['auto', 'log2']
-    param_grid = {'min_samples_split': [3, 4, 5]}
-    grid_search = GridSearchCV(RandomForestClassifier(n_estimators=500, \
-                  min_samples_leaf=5, n_jobs=-1), param_grid, cv=nfolds)
+    ests = [200, 300, 400]
+    splits = [2, 3, 4, 5]
+    leaves = [1, 3, 5]
+    param_grid = {'min_samples_split': splits, 'n_estimators': ests, 'min_samples_leaf': leaves}
+    grid_search = GridSearchCV(RandomForestClassifier(n_jobs=-1), param_grid, cv=nfolds)
     grid_search.fit(X, y)
     return grid_search.best_params_
 
@@ -89,7 +96,7 @@ def get_feature_names():
     return liwc_names + social_names + relevance_names + \
         style_name + empath_names + brown_names
 
-def get_features(): 
+def get_features(com=None): 
     '''
     @return
     - dictionary of ID: vector 
@@ -98,15 +105,26 @@ def get_features():
         gilds = json.load(input_file)
     sorted_gilds = sorted(gilds.keys())
     X = []
-    for comment in sorted_gilds:
-        social = np.load(SOCIAL_VECTORS+comment+'.npy')
-        liwc = np.load(LIWC_VECTORS+comment+'.npy')
-        lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
-        vec = np.concatenate((liwc, social, lexical))
-        X.append(vec)
+    if not com: 
+        for comment in sorted_gilds:
+            social = np.load(SOCIAL_VECTORS+comment+'.npy')
+            liwc = np.load(LIWC_VECTORS+comment+'.npy')
+            lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
+            vec = np.concatenate((liwc, social, lexical))
+            X.append(vec)
+    else:
+        for comment in sorted_gilds:
+            items = comment.split('_')
+            subreddit = '_'.join(items[:-2])
+            if subreddit in com: 
+                social = np.load(SOCIAL_VECTORS+comment+'.npy')
+                liwc = np.load(LIWC_VECTORS+comment+'.npy')
+                lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
+                vec = np.concatenate((liwc, social, lexical))
+                X.append(vec)
     return np.array(X)
     
-def get_labels(popularity=False):
+def get_labels(com=None):
     '''
     @input 
     - 
@@ -117,11 +135,18 @@ def get_labels(popularity=False):
     with open(GILDS_BALANCED, 'r') as input_file:
         gilds = json.load(input_file)
     sorted_gilds = sorted(gilds.keys())
-    for comment in sorted_gilds:
-        labels.append(gilds[comment])
+    if not com: 
+        for comment in sorted_gilds:
+            labels.append(gilds[comment])
+    else:
+        for comment in sorted_gilds:
+            items = comment.split('_')
+            subreddit = '_'.join(items[:-2])
+            if subreddit in com: 
+                labels.append(gilds[comment])
     return np.array(labels)
     
-def split(X, y):
+def split(X, y, com):
     X_train = None
     X_test = None
     y_train = None
@@ -129,13 +154,22 @@ def split(X, y):
     if DATA == "GILDS":
         gild_idx = np.where(y == 1)[0]
         nongild_idx = np.where(y == 0)[0]
-        y_train = np.concatenate((np.ones(8364), np.zeros(8364)))
-        y_test = np.concatenate((np.ones(len(gild_idx) - 8364), \
-                                np.zeros(len(nongild_idx) - 8364)))
-        X_train = np.concatenate((np.take(X, gild_idx[:8364], axis=0), \
-                                 np.take(X, nongild_idx[:8364], axis=0)), axis=0)
-        X_test = np.concatenate((np.take(X, gild_idx[8364:], axis=0), \
-                                np.take(X, nongild_idx[8364:], axis=0)), axis=0)
+        if not com: 
+            y_train = np.concatenate((np.ones(8364), np.zeros(8364)))
+            y_test = np.concatenate((np.ones(len(gild_idx) - 8364), \
+                                    np.zeros(len(nongild_idx) - 8364)))
+            X_train = np.concatenate((np.take(X, gild_idx[:8364], axis=0), \
+                                     np.take(X, nongild_idx[:8364], axis=0)), axis=0)
+            X_test = np.concatenate((np.take(X, gild_idx[8364:], axis=0), \
+                                    np.take(X, nongild_idx[8364:], axis=0)), axis=0)
+        else:
+            y_train = np.concatenate((np.ones(736), np.zeros(736)))
+            y_test = np.concatenate((np.ones(130), \
+                                    np.zeros(650)))
+            X_train = np.concatenate((np.take(X, gild_idx[:736], axis=0), \
+                                     np.take(X, nongild_idx[:736], axis=0)), axis=0)
+            X_test = np.concatenate((np.take(X, gild_idx[736:736+130], axis=0), \
+                                    np.take(X, nongild_idx[736:736+650], axis=0)), axis=0)
         X_train, y_train = shuffle(X_train, y_train, random_state=0)
         X_test, y_test = shuffle(X_test, y_test, random_state=0)
     elif DATA == "RANK":
@@ -143,20 +177,29 @@ def split(X, y):
                                            test_size=0.20, random_state=0)
     return X_train, X_test, y_train, y_test
 
-def main():
-    features = get_features()
-    labels = get_labels()
+def do_classification(out, com=None):
+    """
+    @inputs
+        - com: a set of subreddit names 
+    """
+    features = get_features(com)
+    labels = get_labels(com)
     feature_names = get_feature_names()
     print "Done getting features"
     X, y = shuffle(features, labels, random_state=0)
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
 
-    X_train, X_test, y_train, y_test = split(X, y)
+    X_train, X_test, y_train, y_test = split(X, y, com)
     print "Done splitting data"
-
-    out = open(RESULTS, 'w')
-    clf = RandomForestClassifier(n_estimators=500, min_samples_leaf=5, 
+    print X_train.shape, X_test.shape, y_train.shape, y_test.shape
+    
+    if com: 
+        print >> out, com
+        clf = RandomForestClassifier(n_estimators=200, min_samples_leaf=5, 
+                                 random_state=0, min_samples_split=3, n_jobs=-1) 
+    else:
+        clf = RandomForestClassifier(n_estimators=500, min_samples_leaf=5, 
                                  random_state=0, min_samples_split=3, n_jobs=-1) 
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
@@ -170,8 +213,10 @@ def main():
     print >> out,sorted(zip(map(lambda x: round(x, 4), 
                 clf.feature_importances_), feature_names), 
                          reverse=True)
-                         
-    clf = LinearSVC(loss='hinge', C=14, tol=0.5)
+    if com:                     
+        clf = LinearSVC(loss='hinge', C=8, tol=0.01)
+    else:
+        clf = LinearSVC(loss='hinge', C=14, tol=0.5)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print >> out,"SVM Accuracy:", accuracy_score(y_test, y_pred)
@@ -184,6 +229,20 @@ def main():
     print >> out, sorted(zip(map(lambda x: round(x, 4), 
                 clf.coef_[0]), feature_names), 
                          reverse=True)
+
+def main():
+    out = open(RESULTS, 'w')
+    if not COM_ONLY: 
+        do_classification(out)
+    else:
+        communities = {}
+        with open(COMMUNITY, 'r') as community_file:
+            for line in community_file:
+                contents = line.split()
+                communities[contents[0]] = set(contents[1:])
+        for comm in communities: 
+            do_classification(out, communities[comm])
+    out.close()
     
 if __name__ == '__main__':
     main()
