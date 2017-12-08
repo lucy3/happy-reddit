@@ -28,7 +28,7 @@ if DATA == "GILDS":
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/gilds_classifier_features/social_features/"
     LIWC_VECTORS = "../logs/gild_liwc_vectors/"
     LEXICAL_VECTORS = "../logs/gild_lexical_vectors/"
-    RESULTS = "../results/gilds_classifier.txt"
+    RESULTS = "../results/gilds_classifier_social.txt"
 elif DATA == "RANK":
     GILDS_BALANCED = "../logs/comment_rank_classifier.json"
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/rank_classifier_features/social_features/"
@@ -155,26 +155,26 @@ def split(X, y, com):
         gild_idx = np.where(y == 1)[0]
         nongild_idx = np.where(y == 0)[0]
         if not com: 
-            y_train = np.concatenate((np.ones(8364), np.zeros(8364)))
-            y_test = np.concatenate((np.ones(len(gild_idx) - 8364), \
-                                    np.zeros(len(nongild_idx) - 8364)))
-            X_train = np.concatenate((np.take(X, gild_idx[:8364], axis=0), \
-                                     np.take(X, nongild_idx[:8364], axis=0)), axis=0)
-            X_test = np.concatenate((np.take(X, gild_idx[8364:], axis=0), \
-                                    np.take(X, nongild_idx[8364:], axis=0)), axis=0)
+            y_train = np.concatenate((np.ones(8842), np.zeros(8842)))
+            y_test = np.concatenate((np.ones(len(gild_idx) - 8842), \
+                                    np.zeros(len(nongild_idx) - 8842)))
+            X_train = np.concatenate((np.take(X, gild_idx[:8842], axis=0), \
+                                     np.take(X, nongild_idx[:8842], axis=0)), axis=0)
+            X_test = np.concatenate((np.take(X, gild_idx[8842:], axis=0), \
+                                    np.take(X, nongild_idx[8842:], axis=0)), axis=0)
         else:
-            y_train = np.concatenate((np.ones(736), np.zeros(736)))
-            y_test = np.concatenate((np.ones(130), \
-                                    np.zeros(650)))
-            X_train = np.concatenate((np.take(X, gild_idx[:736], axis=0), \
-                                     np.take(X, nongild_idx[:736], axis=0)), axis=0)
-            X_test = np.concatenate((np.take(X, gild_idx[736:736+130], axis=0), \
-                                    np.take(X, nongild_idx[736:736+650], axis=0)), axis=0)
+            y_train = np.concatenate((np.ones(765), np.zeros(765)))
+            y_test = np.concatenate((np.ones(135), \
+                                    np.zeros(675)))
+            X_train = np.concatenate((np.take(X, gild_idx[:765], axis=0), \
+                                     np.take(X, nongild_idx[:765], axis=0)), axis=0)
+            X_test = np.concatenate((np.take(X, gild_idx[765:765+135], axis=0), \
+                                    np.take(X, nongild_idx[765:765+675], axis=0)), axis=0)
         X_train, y_train = shuffle(X_train, y_train, random_state=0)
         X_test, y_test = shuffle(X_test, y_test, random_state=0)
     elif DATA == "RANK":
         X_train, X_test, y_train, y_test = train_test_split(X, y, \
-                                           test_size=0.20, random_state=0)
+                                           test_size=0.15, random_state=0)
     return X_train, X_test, y_train, y_test
 
 def do_classification(out, com=None):

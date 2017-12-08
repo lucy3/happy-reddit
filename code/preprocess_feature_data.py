@@ -17,7 +17,7 @@ from nltk import ngrams
 from nltk.corpus import brown
 import string
 
-DATA = "RANK"
+DATA = "GILDS"
 if DATA == "GILDS": 
     GILDS = "../logs/comment_gilds_classifier.json"
     OUTPUT = "../data/gilded_classifier_comments"

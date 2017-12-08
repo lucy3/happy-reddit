@@ -14,7 +14,7 @@ from collections import defaultdict, Counter
 import numpy as np
 import time
 
-DATA = "RANK"
+DATA = "GILDS"
 if DATA == "GILDS":
     INPUT = "../data/gilded_classifier_comments"
     OUTPUT = "../logs/gild_liwc_vectors/"
