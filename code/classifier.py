@@ -21,22 +21,22 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
 
-COM_ONLY = True
+COM_ONLY = True # should always be False if DATA is Rank
 DATA = "GILDS"
 if DATA == "GILDS":
     GILDS_BALANCED = "../logs/comment_gilds_classifier.json"
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/gilds_classifier_features/social_features/"
     LIWC_VECTORS = "../logs/gild_liwc_vectors/"
     LEXICAL_VECTORS = "../logs/gild_lexical_vectors/"
-    RESULTS = "../results/gilds_classifier_social.txt"
+    RESULTS = "../results/gilds_classifier_empathless.txt"
 elif DATA == "RANK":
     GILDS_BALANCED = "../logs/comment_rank_classifier.json"
     SOCIAL_VECTORS = "/dfs/scratch1/jmendels/happy-reddit/logs/rank_classifier_features/social_features/"
     LIWC_VECTORS = "../logs/rank_liwc_vectors/"
     LEXICAL_VECTORS = "../logs/rank_lexical_vectors/"
-    RESULTS = "../results/rank_classifier.txt"
+    RESULTS = "../results/rank_classifier_empathless.txt"
 if COM_ONLY: 
-    RESULTS = "../results/gilds_classifier_communities.txt"
+    RESULTS = "../results/gilds_classifier_communities_empathless.txt"
 LIWC = "/dfs/scratch1/lucy3/twitter-relationships/data/en_liwc.txt"
 COMMUNITY = "../results/communities.txt"
 
@@ -85,16 +85,12 @@ def get_liwc_names():
     return liwc_names
 
 def get_feature_names():
+    liwc_names = ['length'] + get_liwc_names()
     social_names = ['status','parent_pop','sub_loyalty',\
                     'user_loyalty','time_past','distance']
-    liwc_names = get_liwc_names()
-    relevance_names = ['post_rel', 'parent_rel']
-    style_name = ['subreddit_prob']
-    lexicon = Empath()
-    empath_names = sorted(lexicon.cats.keys())
-    brown_names = ['unigram_distinct', 'bigram_distinct']
-    return liwc_names + social_names + relevance_names + \
-        style_name + empath_names + brown_names
+    lexical_names = ['post_rel', 'parent_rel', 'subreddit_prob', \
+                     'unigram_distinct', 'bigram_distinct']
+    return social_names + liwc_names + lexical_names
 
 def get_features(com=None): 
     '''
@@ -107,10 +103,10 @@ def get_features(com=None):
     X = []
     if not com: 
         for comment in sorted_gilds:
-            social = np.load(SOCIAL_VECTORS+comment+'.npy')
-            liwc = np.load(LIWC_VECTORS+comment+'.npy')
-            lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
-            vec = np.concatenate((liwc, social, lexical))
+            liwc = np.load(LIWC_VECTORS+comment+'.npy') # 65
+            social = np.load(SOCIAL_VECTORS+comment+'.npy') # 6
+            lexical = np.load(LEXICAL_VECTORS+comment+'.npy') # 5
+            vec = np.concatenate((social, liwc, lexical))
             X.append(vec)
     else:
         for comment in sorted_gilds:
@@ -120,7 +116,7 @@ def get_features(com=None):
                 social = np.load(SOCIAL_VECTORS+comment+'.npy')
                 liwc = np.load(LIWC_VECTORS+comment+'.npy')
                 lexical = np.load(LEXICAL_VECTORS+comment+'.npy')
-                vec = np.concatenate((liwc, social, lexical))
+                vec = np.concatenate((social, liwc, lexical))
                 X.append(vec)
     return np.array(X)
     
@@ -182,18 +178,20 @@ def do_classification(out, com=None):
     @inputs
         - com: a set of subreddit names 
     """
+    feature_names = get_feature_names()
     features = get_features(com)
     labels = get_labels(com)
-    feature_names = get_feature_names()
     print "Done getting features"
     X, y = shuffle(features, labels, random_state=0)
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
-
+    
     X_train, X_test, y_train, y_test = split(X, y, com)
     print "Done splitting data"
-    print X_train.shape, X_test.shape, y_train.shape, y_test.shape
+    print X_train.shape, X_test.shape, y_train.shape, y_test.shape, len(feature_names)
     
+    print rf_param_selection(X_train, y_train, 5)
+    '''
     if com: 
         print >> out, com
         clf = RandomForestClassifier(n_estimators=200, min_samples_leaf=5, 
@@ -214,9 +212,9 @@ def do_classification(out, com=None):
                 clf.feature_importances_), feature_names), 
                          reverse=True)
     if com:                     
-        clf = LinearSVC(loss='hinge', C=8, tol=0.01)
+        clf = LinearSVC(loss='hinge', C=8, tol=0.05, random_state=0)
     else:
-        clf = LinearSVC(loss='hinge', C=14, tol=0.5)
+        clf = LinearSVC(loss='hinge', C=14, tol=0.01, random_state=0)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print >> out,"SVM Accuracy:", accuracy_score(y_test, y_pred)
@@ -229,7 +227,7 @@ def do_classification(out, com=None):
     print >> out, sorted(zip(map(lambda x: round(x, 4), 
                 clf.coef_[0]), feature_names), 
                          reverse=True)
-
+    '''
 def main():
     out = open(RESULTS, 'w')
     if not COM_ONLY: 
@@ -241,7 +239,9 @@ def main():
                 contents = line.split()
                 communities[contents[0]] = set(contents[1:])
         for comm in communities: 
+            print comm
             do_classification(out, communities[comm])
+            break
     out.close()
     
 if __name__ == '__main__':

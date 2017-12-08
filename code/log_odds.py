@@ -14,7 +14,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
-GILDS = "../logs/comment_gilds_balanced.json"
+GILDS = "../logs/comment_gilds_classifier.json"
 LOG_ODDS = "../logs/log_odds/"
 GLOVE = "/dfs/scratch0/jayebird/glove/glove.840B.300d.txt"
 VECTORS = "../logs/log_odds_vectors.json"
@@ -176,8 +176,8 @@ def cluster_log_odds():
     print 'Finished kmeans clustering...'
         
 def main():
-    #do_log_odds()
-    cluster_log_odds()
+    do_log_odds()
+    #cluster_log_odds()
         
 if __name__ == '__main__':
     main()

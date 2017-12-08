@@ -20,7 +20,7 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import string
 from empath import Empath
 
-DATA = "GILDS"
+DATA = "RANK"
 if DATA == "GILDS":
     INPUT = "../data/gilded_classifier_comments"
     POST_INPUT = "../data/gilded_classifier_posts"
@@ -168,9 +168,8 @@ def get_features(orig_text, post_id, comment_id, subreddit, edited, \
     rel_feat = get_relevance(split_text, parent_text, post_text)
     
     brown_feat = get_brown(orig_text, brown)
-    empath_feat = get_empath(text)
     style_feat = get_style(split_text, word_sub_probs[subreddit])
-    all_feats = np.array(rel_feat + style_feat + empath_feat + brown_feat)
+    all_feats = np.array(rel_feat + style_feat + brown_feat)
     np.save(OUTPUT + subreddit + '_' + post_id + '_' + comment_id + '.npy', all_feats)
 
 def main():

@@ -15,6 +15,7 @@ import random
 INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
 SCORES = "../logs/comment_scores.json"
 RANK = "../logs/comment_rank.json"
+RANK_ALL = "../logs/comment_rank_all.json"
 GILDS = "../logs/comment_gilds.json"
 GILDS_CLASSIFIER = "../logs/comment_gilds_classifier.json"
 RANK_CLASSIFIER = "../logs/comment_rank_classifier.json"
@@ -49,6 +50,38 @@ def get_rank():
                 elif i < lower:
                     rank[pc + '_' + com[0]] = 0
     with open(RANK, 'w') as rank_file:
+        json.dump(rank, rank_file)
+        
+def get_rank_all():
+    '''
+    For each post, rank its comments into quartile
+    '''
+    with open(SCORES, 'r') as scores_file:
+        scores = json.load(scores_file)
+    # dictionary from posts to tuples of comment, score
+    posts_comments = defaultdict(list)
+    for name in scores:
+        items = name.split('_')
+        subreddit_post = '_'.join(items[:-1])
+        comment_id = items[-1]
+        score = scores[name]
+        posts_comments[subreddit_post].append((comment_id, score))
+    rank = {}
+    for pc in posts_comments:
+        sorted_posts = sorted(posts_comments[pc], key=lambda tup: tup[1])
+        upper = 3*len(sorted_posts)/4.0
+        mid = len(sorted_posts)/2.0
+        lower = len(sorted_posts)/4.0
+        for i, com in enumerate(sorted_posts):
+            if i >= upper:
+                rank[pc + '_' + com[0]] = 1
+            elif i >= mid: 
+                rank[pc + '_' + com[0]] = 2
+            elif i >= lower: 
+                rank[pc + '_' + com[0]] = 3
+            else:
+                rank[pc + '_' + com[0]] = 4
+    with open(RANK_ALL, 'w') as rank_file:
         json.dump(rank, rank_file)
 
 def get_gilds_scores():
@@ -163,9 +196,10 @@ def count_community_gilds():
 def main():
     #get_gilds_scores()
     #get_rank()
-    balance_gilds()
+    #balance_gilds()
     #subset_rank()
-    count_community_gilds()
+    #count_community_gilds()
+    get_rank_all()
 
 if __name__ == "__main__":
     main()

@@ -24,6 +24,9 @@ SUBREDDIT_TITLES = "../logs/subreddit_titles.json"
 EDGES2 = "../logs/topic_edges.tsv"
 NODES2 = "../logs/topic_nodes.tsv"
 TF_IDF = "../logs/tf_idf.json"
+COMMUNITY = "../results/communities.txt"
+NODES_COM = "../logs/user_nodes_com.tsv"
+NODES2_COM = "../logs/topic_nodes_com.tsv"
 
 def generate_user_sets(): 
     """
@@ -198,14 +201,53 @@ def topic_graph():
     Maybe post title similarity
     """
     #subreddit_docs()
-    tf_idf()
+    #tf_idf()
     #train_doc2vec()
-    create_topic_graph()
-
+    #create_topic_graph()
+    
+def community_graphs():
+    communities = {}
+    with open(COMMUNITY, 'r') as community_file:
+        for line in community_file:
+            contents = line.split()
+            communities[contents[0]] = set(contents[1:])
+    user_membership = {}
+    topic_membership = {}
+    for com in communities: 
+        community = communities[com]
+        for sub in community: 
+            if com.startswith('topic'): 
+                topic_membership[sub] = com 
+            else: 
+                user_membership[sub] = com 
+    # topic
+    with open(NODES2_COM, 'w') as nodes2_com_file: 
+        with open(NODES2, 'r') as nodes2_file: 
+            for line in nodes2_file: 
+                line = line.strip()
+                contents = line.split()
+                if contents[0] == 'Id': 
+                    nodes2_com_file.write(line + '\t' + 'Member' + '\n')
+                else:
+                    subred = contents[1]
+                    nodes2_com_file.write(line + '\t' + topic_membership[subred] + '\n')
+    # user
+    with open(NODES_COM, 'w') as nodes_com_file: 
+        with open(NODES, 'r') as nodes_file: 
+            for line in nodes_file: 
+                line = line.strip()
+                contents = line.split()
+                if contents[0] == 'Id': 
+                    nodes_com_file.write(line + '\t' + 'Member' + '\n')
+                else:
+                    subred = contents[1]
+                    nodes_com_file.write(line + '\t' + user_membership[subred] + '\n')
+        
 def main():
     #generate_user_sets()
     #user_graph()
-    topic_graph()
+    #topic_graph()
+    community_graphs()
 
 if __name__ == "__main__":
     main()
