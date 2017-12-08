@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import MinMaxScaler
 
-COM_ONLY = True # should always be False if DATA is Rank
+COM_ONLY = False # should always be False if DATA is Rank
 DATA = "GILDS"
 if DATA == "GILDS":
     GILDS_BALANCED = "../logs/comment_gilds_classifier.json"
@@ -189,9 +189,7 @@ def do_classification(out, com=None):
     X_train, X_test, y_train, y_test = split(X, y, com)
     print "Done splitting data"
     print X_train.shape, X_test.shape, y_train.shape, y_test.shape, len(feature_names)
-    
-    print rf_param_selection(X_train, y_train, 5)
-    '''
+
     if com: 
         print >> out, com
         clf = RandomForestClassifier(n_estimators=200, min_samples_leaf=5, 
@@ -227,7 +225,7 @@ def do_classification(out, com=None):
     print >> out, sorted(zip(map(lambda x: round(x, 4), 
                 clf.coef_[0]), feature_names), 
                          reverse=True)
-    '''
+
 def main():
     out = open(RESULTS, 'w')
     if not COM_ONLY: 
@@ -241,7 +239,6 @@ def main():
         for comm in communities: 
             print comm
             do_classification(out, communities[comm])
-            break
     out.close()
     
 if __name__ == '__main__':
