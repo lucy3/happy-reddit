@@ -13,8 +13,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-INPUT = "/dfs/dataset/infolab/Reddit/comments/2015/RC_2015-05"
-GILDS = "../logs/comment_gilds_balanced.json"
+INPUT = "../data/gilded_classifier_comments"
+GILDS = "../logs/comment_gilds_classifier.json"
 LOG_ODDS = "../logs/log_odds/"
 GLOVE = "/dfs/scratch0/jayebird/glove/glove.840B.300d.txt"
 VECTORS = "../logs/log_odds_vectors.json"
@@ -57,29 +57,30 @@ def do_log_odds():
         gilds = json.load(gilds_file)
     gilded_lines = []
     non_gilded_lines = []
-    with open(INPUT, 'r') as input_file: 
-        for line in input_file:
-            comment = json.loads(line)
-            post_id = comment['link_id'].split('_')[-1]
-            subreddit = comment['subreddit']
-            comment_id = comment['id']
-            name = subreddit+'_'+post_id+'_'+comment_id
-            if name in gilds:
-                text = comment['body']
-                edited = comment['edited']
-                text = text.lower().encode('utf-8')
-                if edited: 
-                    # remove edits, since they may thank the gilder after the fact
-                    text_lines = text.split('\n')
-                    text_lines = [line for line in text_lines if 'Edit' not in line and \
-                              'ETA' not in line and 'edit' not in line \
-                              and 'eta' not in line and 'gold' not in line and \
-                                  'Gold' not in line and 'gild' not in line]
-                    text = '\n'.join(text_lines)
-                if gilds[name] == 1:
-                    gilded_lines.append(text)
-                else:
-                    non_gilded_lines.append(text)
+    with open(INPUT, 'r') as input_file:
+        # all comments in dataset
+        all_comments = json.load(input_file)
+    for name in gilds: 
+        items = name.split('_')
+        subreddit = '_'.join(items[:-2])
+        post_id = items[-2]
+        comment_ID = items[-1]
+        comment = all_comments[subreddit][post_id][comment_ID] 
+        text = comment['body']
+        edited = comment['edited']
+        text = text.lower().encode('utf-8')
+        if edited: 
+            # remove edits, since they may thank the gilder after the fact
+            text_lines = text.split('\n')
+            text_lines = [line for line in text_lines if 'Edit' not in line and \
+                      'ETA' not in line and 'edit' not in line \
+                      and 'eta' not in line and 'gold' not in line and \
+                          'Gold' not in line and 'gild' not in line]
+            text = '\n'.join(text_lines)
+        if gilds[name] == 1:
+            gilded_lines.append(text)
+        else:
+            non_gilded_lines.append(text)
     all_lines = gilded_lines + non_gilded_lines
     for i in range(1, 4):
         prefix = LOG_ODDS
@@ -176,8 +177,8 @@ def cluster_log_odds():
     print 'Finished kmeans clustering...'
         
 def main():
-    #do_log_odds()
-    cluster_log_odds()
+    do_log_odds()
+    #cluster_log_odds()
         
 if __name__ == '__main__':
     main()
