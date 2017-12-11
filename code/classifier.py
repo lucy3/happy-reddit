@@ -209,6 +209,7 @@ def do_classification(out, com=None):
     print >> out,sorted(zip(map(lambda x: round(x, 4), 
                 clf.feature_importances_), feature_names), 
                          reverse=True)
+
     if com:                     
         clf = LinearSVC(loss='hinge', C=8, tol=0.05, random_state=0)
     else:
