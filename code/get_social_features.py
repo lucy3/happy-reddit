@@ -4,15 +4,14 @@ import numpy as np
 
 
 
-# with open('../logs/post_dict.json','r') as f:
-# 	post_dict = json.load(f)
-# with open('../logs/user_lookup_dict_comments.json','r') as f:
-# 	user_lookup_dict = json.load(f)
-# with open('../logs/subreddit_lookup_dict_comments.json','r') as f:
-# 	subreddit_lookup_dict = json.load(f)
-# with open('../logs/user_scores_comments.json','r') as f:
-# 	score_dict = json.load(f)
-
+with open('../logs/post_dict.json','r') as f:
+	post_dict = json.load(f)
+with open('../logs/user_lookup_dict_comments.json','r') as f:
+	user_lookup_dict = json.load(f)
+with open('../logs/subreddit_lookup_dict_comments.json','r') as f:
+	subreddit_lookup_dict = json.load(f)
+with open('../logs/user_scores_comments.json','r') as f:
+	score_dict = json.load(f)
 
 
 def loop_through_subreddits(comment_dict_directory):
@@ -33,12 +32,9 @@ def loop_through_samples(comment_dict_directory,sample_json,out_directory):
 	with open(sample_json,'r') as f:
 		sample_dict = json.load(f)
 	samples = set(sample_dict.keys())
-	found_samples  = set()
-	print len(samples)
 	num_found = 0
 	filenames = comment_dict_directory + "*"
 	subreddit_files = glob.glob(filenames)
-	print len(subreddit_files)
 	for subreddit_file in subreddit_files:
 		with open(subreddit_file,'r') as jsonin:
 			subreddit_dict = json.load(jsonin)
@@ -51,16 +47,9 @@ def loop_through_samples(comment_dict_directory,sample_json,out_directory):
 					name = subreddit_name + '_' + link_name + '_' + comment_id
 					feature_name = out_directory + name
 					if name in samples:
-						found_samples.add(name)
 						num_found += 1
-					else:
-						continue
-						#print name
-						#feature_vector = get_all_features(comment_id,subreddit_dict[link_id],link_id,subreddit_name)
-						#np.save(feature_name,feature_vector)
-	diff = samples.difference(found_samples)
-	for i in diff:
-		print i
+						feature_vector = get_all_features(comment_id,subreddit_dict[link_id],link_id,subreddit_name)
+						np.save(feature_name,feature_vector)
 	print num_found
 
 
@@ -72,19 +61,23 @@ def get_all_features(comment_id,link_dict,link_id,subreddit_name):
 	sub_loyalty = get_loyalty_from_subreddit(link_dict,comment_id,subreddit_name)
 	user_loyalty = get_loyalty_from_user(link_dict,comment_id,subreddit_name)
 	time_past = get_time_from_post(link_dict,comment_id,post_dict,link_id)
-	#num_replies = get_num_replies_to_comment(link_dict,comment_id)
-	feature_vector = [status,parent_pop,sub_loyalty,user_loyalty,time_past]
+	distance = get_distance_to_post(link_dict,comment_id,link_id)
+	feature_vector = [status,parent_pop,sub_loyalty,user_loyalty,time_past,distance]
 	return feature_vector
 	
 
 def get_status(link_dict,comment_id,score_dict):
 	author = link_dict[comment_id]['author']
+	if author == '[deleted]':
+		return 0
 	total_score = score_dict[author]
 	return total_score - link_dict[comment_id]['score']
 
 
 def get_loyalty_from_subreddit(link_dict,comment_id,subreddit_name):
 	author = link_dict[comment_id]['author']
+	if author == '[deleted]':
+		return 0
 	num_comments_from_user = subreddit_lookup_dict[subreddit_name][author]
 	total_comments_in_sub = sum(subreddit_lookup_dict[subreddit_name].values())
 
@@ -92,6 +85,8 @@ def get_loyalty_from_subreddit(link_dict,comment_id,subreddit_name):
 
 def get_loyalty_from_user(link_dict,comment_id,subreddit_name):
 	author = link_dict[comment_id]['author']
+	if author == '[deleted]':
+		return 0
 	num_comments_to_subreddit = user_lookup_dict[author][subreddit_name]
 	total_comments_by_user = sum(user_lookup_dict[author].values())
 	return float(num_comments_to_subreddit) / total_comments_by_user
@@ -122,18 +117,34 @@ def get_time_from_post(link_dict,comment_id,post_lookup_dict,link_id):
 	comment_time = link_dict[comment_id]['created_utc']
 	return float(int(comment_time)-int(post_time))/1000
 
-def get_distance_to_post(comment_id):
-	return 0
+def get_distance_to_post(link_dict,comment_id,link_id):
+	count = 1
+	curr_parent = link_dict[comment_id]['parent_id']
+	while (curr_parent != link_id):
+		count += 1
+		if curr_parent[3:] not in link_dict:
+			return count
+		new_parent = link_dict[curr_parent[3:]]['parent_id']
+		curr_parent = new_parent
+	return count
+
+		
 
 
 
 def main():
 	comment_dicts = '../../comment_dicts/'
-	out_directory = '../logs/rank_samples_features/social_features/'
-	sample_json = '../logs/comment_rank_subset.json'
-	#out_directory = 'ranked_samples_features/social_features'
-	#loop_through_subreddits(comment_dicts)
+	out_directory = '../logs/gilds_classifier_features/social_features/'
+	sample_json = '../logs/comment_gilds_classifier.json'
 	loop_through_samples(comment_dicts,sample_json,out_directory)
+
+	# comment_dicts = '../../comment_dicts/'
+	# out_directory = '../logs/rank_classifier_features/social_features/'
+	# sample_json = '../logs/comment_rank_classifier.json'
+	# loop_through_samples(comment_dicts,sample_json,out_directory)
+
+
+
 
 
 
